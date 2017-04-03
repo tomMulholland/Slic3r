@@ -146,7 +146,12 @@ src/slic3r/GUI/AboutDialog.cpp
 src/slic3r/GUI/AboutDialog.hpp
 src/slic3r/GUI/GUI.cpp
 src/slic3r/GUI/GUI.hpp
+src/slic3r/GUI/OptionsGroup.hpp
+src/slic3r/GUI/OptionsGroup.cpp
+src/slic3r/GUI/Widget.hpp
 src/slic3r/GUI/wxinit.h
+src/slic3r/GUI/OptionsGroup/Field.cpp
+src/slic3r/GUI/OptionsGroup/Field.hpp
 src/tiny_obj_loader.h
 src/xsinit.h
 t/01_trianglemesh.t
