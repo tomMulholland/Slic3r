@@ -20,8 +20,6 @@ namespace GUI {
 /// 
 class Field {
 protected:
-    wxSizer* _sizer;
-    wxWindow* _window;
     wxWindow* _parent;
 
     /// Instantiate the underlying wxWidgets control/window.
@@ -43,10 +41,6 @@ public:
     wxSizer* sizer() { return _sizer; }
     wxWindow* window() { return _window; }
 
-    // 
-    bool has_sizer() { return _sizer != nullptr; }
-    bool has_window() { return _window != nullptr; }
-
     /// Return the wxWidgets ID for this object.
     ///
     wxWindowID get_id() { if (this->has_window()) return _window->GetId(); }
@@ -65,10 +59,36 @@ public:
 
 };
 
-class TextCtrl : public Field {
-protected:
+class wxWindow : public Field {
+    protected:
+    wxWindow* _window;
+};
+
+class wxSizer : public Field {
+    protected: 
+    wxSizer* _sizer;
+}
+
+class CheckBox : public wxWindow {
+    protected:
     void BUILD();
-public:
+    public:
+    CheckBox();
+    CheckBox(wxFrame* parent, const ConfigOptionDef& opt) : Field(parent, opt) { BUILD(); };
+
+    void set_value(bool value);
+    void set_value(boost::any value);
+    boost::any get_value() { return boost::any(dynamic_cast<wxCheckBox*>(_window)->GetValue()); }
+
+    void enable() { dynamic_cast<wxCheckBox*>(_window)->Enable(); }
+    void disable() { dynamic_cast<wxCheckBox*>(_window)->Disable(); }
+    void __on_change(wxCommandEvent&);
+};
+
+class TextCtrl : public wxWindow {
+    protected:
+    void BUILD();
+    public:
     TextCtrl();
     TextCtrl(wxFrame* parent, const ConfigOptionDef& opt) : Field(parent, opt) { BUILD(); };
 

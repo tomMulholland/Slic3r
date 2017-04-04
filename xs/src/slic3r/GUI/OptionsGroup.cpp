@@ -41,7 +41,7 @@ void OptionsGroup::append_line(const Line& line) {
     // If we have an extra column, build it.
     // If there's a label, build it.
     if (label_width != 0) {
-        wxStaticText* label = new wxStaticText(_parent, -1, _(line.label) + ":", wxDefaultPosition);
+        wxStaticText* label = new wxStaticText(_parent, -1, __(line.label) + ":", wxDefaultPosition);
         label->Wrap(label_width);
         if (wxIsEmpty(line.tooltip())) { label->SetToolTip(line.tooltip()); }
         grid_sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL, 0);
