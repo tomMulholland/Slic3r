@@ -123,6 +123,9 @@ Field* OptionsGroup::_build_field(const ConfigOptionDef& opt) {
 }
 
 void OptionsGroup::update_config(const ConfigOptionDef& opt, boost::any value) {
+    #ifdef SLIC3R_DEBUG
+        std::cerr << "Calling update_config for " << opt.label << "\n";
+    #endif
    
 }
 } }

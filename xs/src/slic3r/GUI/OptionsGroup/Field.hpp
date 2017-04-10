@@ -31,12 +31,15 @@ protected:
 
     /// Reference to underlying ConfigOptionDef this Field is
     /// implementing.
-    /// TODO: This may not be necessary.
     const ConfigOptionDef& opt; 
 
 public:
+    /// Functors to manage event handling for this Field. 
     std::function<void(wxCommandEvent&)> _on_change;
     std::function<void(wxCommandEvent&)> _on_kill_focus;
+
+    /// Reference to parent OptionsGroup function to manipulate Slic3r::Config
+    ///
     std::function<void(const ConfigOptionDef& opt, boost::any value)> on_change; 
 
     // used if we need to know which ConfigOptionDef this corresponds.
@@ -46,13 +49,13 @@ public:
         _on_change(nullptr), _on_kill_focus(nullptr), on_change(nullptr) { }
 
     /// Return the wxWidgets ID for this object.
-    ///
     wxWindowID get_id() { if (this->window() != nullptr) return this->window()->GetId(); }
     virtual wxWindow* window() = 0;
     virtual wxSizer* sizer() = 0;
 
     /// Sets a value for this control.
     /// subclasses should overload with a specific version
+    /// and an explcit cast
     virtual void set_value(boost::any value) = 0;
     
     /// Gets a boost::any representing this control.
@@ -65,6 +68,9 @@ public:
 
 };
 
+/// Thin class necessary for inheritance purposes. 
+/// Every class that inherits off of this exposes a wxWindow (sizer() returns nullptr)
+/// for its basic function.
 class Window : public Field 
 {
     protected:
@@ -75,6 +81,8 @@ class Window : public Field
     wxSizer* sizer() { return nullptr; }
 };
 
+/// Thin class necessary for inheritance purposes.
+/// Every class that inherits off of this exposes a wxSizer (window() returns nullptr).
 class Sizer : public Field 
 {
     protected: 
@@ -85,6 +93,9 @@ class Sizer : public Field
     wxWindow* window() { return nullptr; }
 };
 
+
+/// Checkbox field class
+///
 class CheckBox : public Window 
 {
     protected:
@@ -101,6 +112,9 @@ class CheckBox : public Window
     void disable() { dynamic_cast<wxCheckBox*>(_window)->Disable(); }
 };
 
+
+/// Generic textbox field. 
+///
 class TextCtrl : public Window {
     protected:
     void BUILD();
@@ -117,7 +131,7 @@ class TextCtrl : public Window {
         } catch (boost::bad_any_cast) {
             // TODO Log error and do nothing
             #ifdef SLIC3R_DEBUG
-                std::cerr << "Bad cast from TextCtrl set_value, not a string?\n";
+                std::cerr << opt.label << ": Bad cast from TextCtrl set_value, not a string?\n";
             #endif
         }
     }
