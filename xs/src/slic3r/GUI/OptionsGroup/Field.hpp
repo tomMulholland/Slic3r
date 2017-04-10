@@ -7,6 +7,10 @@
 #include <boost/any.hpp>
 #include <map>
 
+#ifdef SLIC3R_DEBUG
+#include <iostream>
+#endif
+
 // ConfigOptionDef definition
 #include "Config.hpp"
 
@@ -14,11 +18,10 @@ namespace Slic3r {
 class ConfigOptionDef;
 namespace GUI {
 
-
-
 /// Interface class for fields
 /// 
-class Field {
+class Field 
+{
 protected:
     wxWindow* _parent;
 
@@ -34,16 +37,19 @@ protected:
 public:
     std::function<void(wxCommandEvent&)> _on_change;
     std::function<void(wxCommandEvent&)> _on_kill_focus;
+    std::function<void(const ConfigOptionDef& opt, boost::any value)> on_change; 
+
     // used if we need to know which ConfigOptionDef this corresponds.
-    Field() : opt(ConfigOptionDef()), _on_change(nullptr), _on_kill_focus(nullptr){}
-    Field(const ConfigOptionDef& opt) : opt(opt), type(opt.gui_type) { }
-    Field(wxFrame* parent, const ConfigOptionDef& opt) : opt(opt),  _parent(parent) { }
-    wxSizer* sizer() { return _sizer; }
-    wxWindow* window() { return _window; }
+    Field() : opt(ConfigOptionDef()), _on_change(nullptr), _on_kill_focus(nullptr), on_change(nullptr) {}
+    Field(const ConfigOptionDef& opt) : opt(opt), _on_change(nullptr), _on_kill_focus(nullptr), on_change(nullptr) { }
+    Field(wxFrame* parent, const ConfigOptionDef& opt) : opt(opt),  _parent(parent),
+        _on_change(nullptr), _on_kill_focus(nullptr), on_change(nullptr) { }
 
     /// Return the wxWidgets ID for this object.
     ///
-    wxWindowID get_id() { if (this->has_window()) return _window->GetId(); }
+    wxWindowID get_id() { if (this->window() != nullptr) return this->window()->GetId(); }
+    virtual wxWindow* window() = 0;
+    virtual wxSizer* sizer() = 0;
 
     /// Sets a value for this control.
     /// subclasses should overload with a specific version
@@ -59,22 +65,33 @@ public:
 
 };
 
-class wxWindow : public Field {
+class Window : public Field 
+{
     protected:
     wxWindow* _window;
+    public:
+    Window(wxFrame* parent, const ConfigOptionDef& opt) : Field(parent, opt) { };
+    wxWindow* window() { return _window; }
+    wxSizer* sizer() { return nullptr; }
 };
 
-class wxSizer : public Field {
+class Sizer : public Field 
+{
     protected: 
     wxSizer* _sizer;
-}
+    public:
+    Sizer(wxFrame* parent, const ConfigOptionDef& opt) : Field(parent, opt) { };
+    wxSizer* sizer() { return _sizer; }
+    wxWindow* window() { return nullptr; }
+};
 
-class CheckBox : public wxWindow {
+class CheckBox : public Window 
+{
     protected:
     void BUILD();
     public:
     CheckBox();
-    CheckBox(wxFrame* parent, const ConfigOptionDef& opt) : Field(parent, opt) { BUILD(); };
+    CheckBox(wxFrame* parent, const ConfigOptionDef& opt) : Window(parent, opt) { BUILD(); };
 
     void set_value(bool value);
     void set_value(boost::any value);
@@ -82,15 +99,14 @@ class CheckBox : public wxWindow {
 
     void enable() { dynamic_cast<wxCheckBox*>(_window)->Enable(); }
     void disable() { dynamic_cast<wxCheckBox*>(_window)->Disable(); }
-    void __on_change(wxCommandEvent&);
 };
 
-class TextCtrl : public wxWindow {
+class TextCtrl : public Window {
     protected:
     void BUILD();
     public:
     TextCtrl();
-    TextCtrl(wxFrame* parent, const ConfigOptionDef& opt) : Field(parent, opt) { BUILD(); };
+    TextCtrl(wxFrame* parent, const ConfigOptionDef& opt) : Window(parent, opt) { BUILD(); };
 
     void set_value(std::string value) { 
             dynamic_cast<wxTextCtrl*>(_window)->SetValue(wxString(value));
@@ -100,13 +116,14 @@ class TextCtrl : public wxWindow {
             dynamic_cast<wxTextCtrl*>(_window)->SetValue(boost::any_cast<wxString>(value));
         } catch (boost::bad_any_cast) {
             // TODO Log error and do nothing
+            #ifdef SLIC3R_DEBUG
+                std::cerr << "Bad cast from TextCtrl set_value, not a string?\n";
+            #endif
         }
     }
     boost::any get_value() { return boost::any(dynamic_cast<wxTextCtrl*>(_window)->GetValue()); }
-    
     void enable() { dynamic_cast<wxTextCtrl*>(_window)->Enable(); dynamic_cast<wxTextCtrl*>(_window)->SetEditable(1); }
     void disable() { dynamic_cast<wxTextCtrl*>(_window)->Disable(); dynamic_cast<wxTextCtrl*>(_window)->SetEditable(0); }
-    void __on_change(wxCommandEvent&);
     
 };
 

@@ -32,9 +32,9 @@ void OptionsGroup::BUILD() {
 }
 
 void OptionsGroup::append_line(const Line& line) {
-    if (line.has_sizer() || (line.has_widget() && line.full_width)) {
+    if (line.sizer() != nullptr || (line.has_widget() && line.full_width)) {
         wxASSERT(line.sizer() != nullptr);
-        _sizer->Add( (line.has_sizer() ? line.sizer() : line.widget().sizer()), 0, wxEXPAND | wxALL, BORDER(0, 15));
+        _sizer->Add( (line.sizer() != nullptr ? line.sizer() : line.widget().sizer()), 0, wxEXPAND | wxALL, BORDER(0, 15));
         return;
     }
     wxSizer* grid_sizer = _grid_sizer;
@@ -57,9 +57,9 @@ void OptionsGroup::append_line(const Line& line) {
         if (line.extra_widgets().size() && !wxIsEmpty(opt.sidetext) && line.extra_widgets().size() == 0) {
             Field* field = _build_field(opt);
             if (field != nullptr) {
-                if (field->has_sizer()) {
+                if (field->sizer() != nullptr) {
                     grid_sizer->Add(field->sizer(), 0, (opt.full_width ? wxEXPAND : 0) | wxALIGN_CENTER_VERTICAL, 0);
-                } else if (field->has_window()) {
+                } else if (field->window() != nullptr) {
                     grid_sizer->Add(field->window(), 0, (opt.full_width ? wxEXPAND : 0) | wxALIGN_CENTER_VERTICAL, 0);
                 }
             }
@@ -79,18 +79,19 @@ void OptionsGroup::append_line(const Line& line) {
         // add field
         Field* field = _build_field(option);
         if (field != nullptr) {
-            if (field->has_sizer()) {
+            if (field->sizer() != nullptr) {
                 sizer->Add(field->sizer(), 0, (option.full_width ? wxEXPAND : 0) | wxALIGN_CENTER_VERTICAL, 0);
-            } else if (field->has_window()) {
+            } else if (field->window() != nullptr) {
                 sizer->Add(field->window(), 0, (option.full_width ? wxEXPAND : 0) | wxALIGN_CENTER_VERTICAL, 0);
             }
         }
 
         if (!wxIsEmpty(option.sidetext)) {
         }
+        /* TODO Support side widgets
         if (option.side_widget.valid()) {
             sizer->Add(option.side_widget.sizer(), 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 1);
-        }
+        }*/
         if (&option != &line.options().back()) {
             sizer->AddSpacer(4);
         }
@@ -119,5 +120,9 @@ Field* OptionsGroup::_build_field(const ConfigOptionDef& opt) {
             break;
     }
     return built_field;
+}
+
+void OptionsGroup::update_config(const ConfigOptionDef& opt, boost::any value) {
+   
 }
 } }

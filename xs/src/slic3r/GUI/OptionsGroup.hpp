@@ -6,7 +6,10 @@
 #include "wxinit.h"
 #include "Widget.hpp"
 #include "OptionsGroup/Field.hpp"
+
+// libslic3r
 #include "Config.hpp"
+#include "PrintConfig.hpp"
 namespace Slic3r { 
 class ConfigOptionDef;
 namespace GUI {
@@ -21,7 +24,7 @@ enum class GUI_Type {
 };
 
 // Map these flags 
-constexpr std::map<std::string, GUI_Type>gui_type_map> = 
+static const std::map<std::string, GUI_Type> gui_type_map = 
     { { "i_enum_open", GUI_Type::i_enum_open },
       { "f_enum_open", GUI_Type::f_enum_open },
       { "select_open", GUI_Type::select_open }
@@ -66,6 +69,8 @@ class OptionsGroup {
         wxFrame* _parent;
         std::map<size_t, Field*> fields;
         Field* _build_field(const ConfigOptionDef& opt);
+        // Reference to libslic3r configuration object.
+        Slic3r::FullPrintConfig* config; 
     public:
         const wxString title;
 
@@ -99,6 +104,11 @@ class OptionsGroup {
         wxSizer* sizer() { return _sizer; }
         void disable() { for (auto& f: fields) f.second->disable(); }
         void enable() { for (auto& f: fields) f.second->enable(); }
+
+        // Handler function for updating config options based on what 
+        // value this is. A reference to this function should be assigned to the 
+        // functor in the Field objects prior to calling their Build() method.
+        void update_config(const ConfigOptionDef& opt, boost::any value);
 };
 
 
