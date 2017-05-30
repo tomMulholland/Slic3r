@@ -62,7 +62,7 @@ if ($mswin) {
     push @cflags, qw(-DNOMINMAX -D_USE_MATH_DEFINES);
 }
 
-my @INC  = qw(-Isrc/libslic3r);
+my @INC  = qw(-Isrc/libslic3r -Isrc/vcglib);
 my @LIBS = $cpp_guess->is_msvc ? qw(-LIBPATH:src/libslic3r) : qw(-Lsrc/libslic3r);
 
 # search for Boost in a number of places
