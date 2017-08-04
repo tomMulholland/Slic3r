@@ -1,145 +1,78 @@
-#ifndef FIELD_HPP
-#define FIELD_HPP
-
-#include "../wxinit.h"
-
 #include <functional>
-#include <boost/any.hpp>
-#include <map>
+/// Templated base class for deriving further items from. 
+// temporary forward class
+class wxWindow;
+class wxString;
+class wxCommandEvent;
+class wxCheckBox;
+template <typename T>
+class Option;
 
-#ifdef SLIC3R_DEBUG
-#include <iostream>
-#endif
-
-// ConfigOptionDef definition
-#include "Config.hpp"
-
-namespace Slic3r { 
-class ConfigOptionDef;
-namespace GUI {
-
-/// Interface class for fields
-/// 
-class Field 
-{
-protected:
-    wxWindow* _parent;
-
-    /// Instantiate the underlying wxWidgets control/window.
-    /// This function is expected to be called by the constructor.
-    virtual void BUILD() = 0;
-
-    /// Reference to underlying ConfigOptionDef this Field is
-    /// implementing.
-    const ConfigOptionDef& opt; 
+template <class T> 
+class Field {
 
 public:
+    /// Object parent
+    wxWindow* const parent;
+    /// reference to Slic3r::GUI::OptionsGroup::Option
+    const Option<T>& option;
+
+    Field(wxWindow* const parent, const Option<T>& option) : parent(parent), option(option) {}
+
+    Field() : parent(nullptr), option(Option<T>()) {} 
+
     /// Functors to manage event handling for this Field. 
     std::function<void(wxCommandEvent&)> _on_change;
     std::function<void(wxCommandEvent&)> _on_kill_focus;
+    bool disable_change_event;
 
-    /// Reference to parent OptionsGroup function to manipulate Slic3r::Config
-    ///
-    std::function<void(const ConfigOptionDef& opt, boost::any value)> on_change; 
+    // templated 
+    virtual void set_value(const T& value);
+    virtual const T& get_value();
 
-    // used if we need to know which ConfigOptionDef this corresponds.
-    Field() : opt(ConfigOptionDef()), _on_change(nullptr), _on_kill_focus(nullptr), on_change(nullptr) {}
-    Field(const ConfigOptionDef& opt) : opt(opt), _on_change(nullptr), _on_kill_focus(nullptr), on_change(nullptr) { }
-    Field(wxFrame* parent, const ConfigOptionDef& opt) : opt(opt),  _parent(parent),
-        _on_change(nullptr), _on_kill_focus(nullptr), on_change(nullptr) { }
+    /// Public interface 
+    virtual void set_tooltip(const wxString& tip) = 0;
 
-    /// Return the wxWidgets ID for this object.
-    wxWindowID get_id() { if (this->window() != nullptr) return this->window()->GetId(); }
-    virtual wxWindow* window() = 0;
-    virtual wxSizer* sizer() = 0;
-
-    /// Sets a value for this control.
-    /// subclasses should overload with a specific version
-    /// and an explcit cast
-    virtual void set_value(boost::any value) = 0;
-    
-    /// Gets a boost::any representing this control.
-    /// subclasses should overload with a specific version
-    virtual boost::any get_value() = 0;
-
-    /// subclasses should overload with a specific version
+    void toggle(const bool newval) { 
+        if (newval) { this->enable(); } 
+        else { this->disable(); }
+    }
+        
     virtual void enable() = 0;
     virtual void disable() = 0;
 
 };
+// TODO: Add constructor
 
-/// Thin class necessary for inheritance purposes. 
-/// Every class that inherits off of this exposes a wxWindow (sizer() returns nullptr)
-/// for its basic function.
-class Window : public Field 
-{
-    protected:
-    wxWindow* _window;
-    public:
-    Window(wxFrame* parent, const ConfigOptionDef& opt) : Field(parent, opt) { };
-    wxWindow* window() { return _window; }
-    wxSizer* sizer() { return nullptr; }
-};
-
-/// Thin class necessary for inheritance purposes.
-/// Every class that inherits off of this exposes a wxSizer (window() returns nullptr).
-class Sizer : public Field 
-{
-    protected: 
-    wxSizer* _sizer;
-    public:
-    Sizer(wxFrame* parent, const ConfigOptionDef& opt) : Field(parent, opt) { };
-    wxSizer* sizer() { return _sizer; }
-    wxWindow* window() { return nullptr; }
-};
-
-
-/// Checkbox field class
-///
-class CheckBox : public Window 
-{
-    protected:
-    void BUILD();
-    public:
-    CheckBox();
-    CheckBox(wxFrame* parent, const ConfigOptionDef& opt) : Window(parent, opt) { BUILD(); };
-
-    void set_value(bool value);
-    void set_value(boost::any value);
-    boost::any get_value() { return boost::any(dynamic_cast<wxCheckBox*>(_window)->GetValue()); }
-
-    void enable() { dynamic_cast<wxCheckBox*>(_window)->Enable(); }
-    void disable() { dynamic_cast<wxCheckBox*>(_window)->Disable(); }
-};
-
-
-/// Generic textbox field. 
-///
-class TextCtrl : public Window {
-    protected:
-    void BUILD();
-    public:
-    TextCtrl();
-    TextCtrl(wxFrame* parent, const ConfigOptionDef& opt) : Window(parent, opt) { BUILD(); };
-
-    void set_value(std::string value) { 
-            dynamic_cast<wxTextCtrl*>(_window)->SetValue(wxString(value));
+/// Generic box template class with 
+template <class T, class wxWindowType>
+class Window : public Field<T> {
+protected:
+    wxWindowType* window;
+public:
+    void set_tooltip(const wxString& tip) {
+        this->window->SetToolTip(tip);
     }
-    void set_value(boost::any value) { 
-        try {
-            dynamic_cast<wxTextCtrl*>(_window)->SetValue(boost::any_cast<wxString>(value));
-        } catch (boost::bad_any_cast) {
-            // TODO Log error and do nothing
-            #ifdef SLIC3R_DEBUG
-                std::cerr << opt.label << ": Bad cast from TextCtrl set_value, not a string?\n";
-            #endif
-        }
-    }
-    boost::any get_value() { return boost::any(dynamic_cast<wxTextCtrl*>(_window)->GetValue()); }
-    void enable() { dynamic_cast<wxTextCtrl*>(_window)->Enable(); dynamic_cast<wxTextCtrl*>(_window)->SetEditable(1); }
-    void disable() { dynamic_cast<wxTextCtrl*>(_window)->Disable(); dynamic_cast<wxTextCtrl*>(_window)->SetEditable(0); }
-    
+    Window(wxWindow* const parent, const Option<T>& option) : Field<T>(parent, option) {};
+
+    /// _trigger_wxWindow is implemented as an setter for window
+
 };
 
-} }
-#endif
+/// Derivation and full specialization of a wxCheckBox for a Boolean option.
+class CheckBox : Window<bool, wxCheckBox> {
+public:
+    CheckBox(wxWindow* const parent, const Option<bool>& option) : Window<bool,wxCheckBox>(parent, option) {
+        window = new wxCheckBox(this->parent, -1, "");
+        window->SetValue(this->option.default);
+        if (this->option.readonly) window->Disable();
+        
+        // Lambda function to call out to on_change
+        this->_on_change = [=](wxCommandEvent& a) 
+        {  if (!this->disable_change_event) 
+        this->on_change(this->option, this->window->GetValue() ); };
+
+        // Load on_change lambda
+        window->Bind(wxEVT_CHECKBOX, this->_on_change, this->option.opt_id);
+    }
+};
