@@ -1,10 +1,8 @@
 #include <functional>
+#include "../wxinit.h"
+#include "Option.hpp"
+
 /// Templated base class for deriving further items from. 
-// temporary forward class
-class wxWindow;
-class wxString;
-class wxCommandEvent;
-class wxCheckBox;
 template <typename T>
 class Option;
 
@@ -24,6 +22,8 @@ public:
     /// Functors to manage event handling for this Field. 
     std::function<void(wxCommandEvent&)> _on_change;
     std::function<void(wxCommandEvent&)> _on_kill_focus;
+    
+    std::function<void(const wxString&, T&)> on_change;
     bool disable_change_event;
 
     // templated 
@@ -64,13 +64,13 @@ class CheckBox : Window<bool, wxCheckBox> {
 public:
     CheckBox(wxWindow* const parent, const Option<bool>& option) : Window<bool,wxCheckBox>(parent, option) {
         window = new wxCheckBox(this->parent, -1, "");
-        window->SetValue(this->option.default);
+        window->SetValue(this->option.default_value);
         if (this->option.readonly) window->Disable();
         
         // Lambda function to call out to on_change
         this->_on_change = [=](wxCommandEvent& a) 
         {  if (!this->disable_change_event) 
-        this->on_change(this->option, this->window->GetValue() ); };
+        this->on_change(this->option.opt_id, this->window->GetValue() ); };
 
         // Load on_change lambda
         window->Bind(wxEVT_CHECKBOX, this->_on_change, this->option.opt_id);
