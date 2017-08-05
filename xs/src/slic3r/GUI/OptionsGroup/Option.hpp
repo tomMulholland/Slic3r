@@ -7,5 +7,6 @@ public:
     std::string type;
     T default_value;
     bool readonly;
+    bool multiline;
 
 };
