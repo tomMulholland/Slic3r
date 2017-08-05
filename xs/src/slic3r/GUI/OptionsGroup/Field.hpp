@@ -112,11 +112,10 @@ public:
         this->window->Refresh();
     }
 
-
 };
 
 /// Derivation and full specialization of a wxCheckBox for a Boolean option.
-class CheckBox : Window<bool, wxCheckBox> {
+class CheckBox : public Window<bool, wxCheckBox> {
 public:
     CheckBox(wxWindow* const parent, const Option<bool>& option) : Window<bool,wxCheckBox>(parent, option) {
         window = new wxCheckBox(this->parent, -1, "");
@@ -128,7 +127,7 @@ public:
     }
 };
 
-class TextCtrl : Window<wxString, wxTextCtrl> {
+class TextCtrl : public Window<wxString, wxTextCtrl> {
 public:
     TextCtrl(wxWindow* const parent, const Option<wxString>& option) : Window<wxString,wxTextCtrl>(parent, option) {
         const auto style = ( this->option.multiline ? wxTE_MULTILINE : 0 );
