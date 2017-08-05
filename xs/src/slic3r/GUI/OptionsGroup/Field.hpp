@@ -1,4 +1,5 @@
 #include <functional>
+#include <atomic>
 #include "../wxinit.h"
 #include "Option.hpp"
 
@@ -16,6 +17,8 @@ private:
         // Default to doing nothing
         this->on_change = [=](const wxString&, T&) { };;
         this->on_kill_focus = [=](const wxString&) { };;
+
+        this->disable_change_event.clear(std::memory_order_release);
     }
 
 public:
@@ -45,11 +48,11 @@ public:
     std::function<void(const wxString&)> on_kill_focus;
 
     /// Whether or not the associated change event is disabled.
-    bool disable_change_event;
+    std::atomic_flag disable_change_event;
 
     // templated 
     virtual void set_value(const T& value);
-    virtual const T& get_value() const;
+    virtual T& get_value() const;
 
     /// Public interface 
     virtual void set_tooltip(const wxString& tip) = 0;
@@ -84,6 +87,30 @@ public:
     Window(wxWindow* const parent, const Option<T>& option) : Field<T>(parent, option) {};
 
     /// _trigger_wxWindow is implemented as an setter for window
+    void set_window(wxWindowType* _window) {
+        window = _window;
+        this->set_tooltip(this->option.tooltip);
+    }
+
+    /// Setter function, incorporates disable_change_event as a spinlock mutex
+    void set_value(const T& value) {
+        while (this->disable_change_event.test_and_set(std::memory_order_acquire))
+            ; // spin
+        this->window->SetValue(value);
+        this->disable_change_event.clear(std::memory_order_release);
+    }
+
+    T& get_value() const { return dynamic_cast<T&>(window->GetValue()); }
+
+    void enable() {
+        this->window->Enable();
+        this->window->Refresh();
+    }
+
+    void disable() {
+        this->window->Disable();
+        this->window->Refresh();
+    }
 
 
 };
